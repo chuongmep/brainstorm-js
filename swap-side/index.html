@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draggable Side-by-Side Layout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background-color: #333;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        #swap-button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #swap-button:hover {
+            background-color: #45a049;
+        }
+        
+        .container {
+            display: flex;
+            width: 100%;
+            flex-grow: 1;
+        }
+        
+        .panel {
+            padding: 20px;
+            overflow: auto;
+            transition: width 0.3s ease;
+        }
+        
+        #left-panel {
+            background-color: #f0f0f0;
+            width: 50%;
+        }
+        
+        #right-panel {
+            background-color: #e0e0e0;
+            width: 50%;
+        }
+        
+        .resize-handle {
+            width: 10px;
+            background-color: #ccc;
+            cursor: col-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .resize-handle::after {
+            content: "⋮";
+            color: #666;
+            font-size: 20px;
+            transform: rotate(90deg);
+        }
+        
+        .resize-handle:hover {
+            background-color: #999;
+        }
+        
+        .content-box {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+        
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button id="swap-button">Swap Panels</button>
+    </div>
+    <div class="container">
+        <div id="left-panel" class="panel">
+            <h2>Left Panel</h2>
+            <div class="content-box">
+                <h3>Content Box 1</h3>
+                <p>This is some content in the left panel. You can add whatever you want here.</p>
+                <p>Try dragging the divider between panels to resize them!</p>
+            </div>
+            <div class="content-box">
+                <h3>Content Box 2</h3>
+                <p>Here's another content box with different information.</p>
+                <p>You can add as many boxes as you need to organize your content.</p>
+            </div>
+        </div>
+        
+        <div class="resize-handle" id="resize-handle"></div>
+        
+        <div id="right-panel" class="panel">
+            <h2>Right Panel</h2>
+            <div class="content-box">
+                <h3>Content Box 3</h3>
+                <p>This is content in the right panel. You can put different information here.</p>
+                <p>The panel widths will adjust as you drag the divider.</p>
+            </div>
+            <div class="content-box">
+                <h3>Content Box 4</h3>
+                <p>You can customize the colors, sizes, and content to match your needs.</p>
+                <p>This layout works well for comparison views, documentation, code editors, and more.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const leftPanel = document.getElementById('left-panel');
+            const rightPanel = document.getElementById('right-panel');
+            const resizeHandle = document.getElementById('resize-handle');
+            const swapButton = document.getElementById('swap-button');
+            let isResizing = false;
+            let lastX;
+
+            // Handle mouse events for resizing
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                lastX = e.clientX;
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', stopResizing);
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+
+            function handleMouseMove(e) {
+                if (!isResizing) return;
+                
+                const deltaX = e.clientX - lastX;
+                const containerWidth = document.querySelector('.container').clientWidth;
+                
+                // Calculate new widths as percentages
+                let leftWidth = (leftPanel.offsetWidth + deltaX) / containerWidth * 100;
+                let rightWidth = 100 - leftWidth;
+                
+                // Apply minimum width constraints (10%)
+                if (leftWidth < 10) leftWidth = 10;
+                if (rightWidth < 10) rightWidth = 10;
+                
+                // Update panel widths
+                leftPanel.style.width = leftWidth + '%';
+                rightPanel.style.width = rightWidth + '%';
+                
+                lastX = e.clientX;
+            }
+
+            function stopResizing() {
+                isResizing = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', stopResizing);
+                document.body.style.cursor = '';
+            }
+
+            // Touch support for mobile devices
+            resizeHandle.addEventListener('touchstart', function(e) {
+                isResizing = true;
+                lastX = e.touches[0].clientX;
+                document.addEventListener('touchmove', handleTouchMove);
+                document.addEventListener('touchend', stopTouchResizing);
+                e.preventDefault();
+            });
+
+            function handleTouchMove(e) {
+                if (!isResizing) return;
+                
+                const deltaX = e.touches[0].clientX - lastX;
+                const containerWidth = document.querySelector('.container').clientWidth;
+                
+                let leftWidth = (leftPanel.offsetWidth + deltaX) / containerWidth * 100;
+                let rightWidth = 100 - leftWidth;
+                
+                if (leftWidth < 10) leftWidth = 10;
+                if (rightWidth < 10) rightWidth = 10;
+                
+                leftPanel.style.width = leftWidth + '%';
+                rightPanel.style.width = rightWidth + '%';
+                
+                lastX = e.touches[0].clientX;
+            }
+
+            function stopTouchResizing() {
+                isResizing = false;
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', stopTouchResizing);
+            }
+            
+            // Swap panels button functionality
+            swapButton.addEventListener('click', function() {
+                // Store the HTML content of both panels
+                const leftContent = leftPanel.innerHTML;
+                const rightContent = rightPanel.innerHTML;
+                
+                // Swap the content
+                leftPanel.innerHTML = rightContent;
+                rightPanel.innerHTML = leftContent;
+                
+                // Optional: Add a visual effect during the swap
+                leftPanel.style.transition = 'background-color 0.3s';
+                rightPanel.style.transition = 'background-color 0.3s';
+                
+                const leftBg = getComputedStyle(leftPanel).backgroundColor;
+                const rightBg = getComputedStyle(rightPanel).backgroundColor;
+                
+                leftPanel.style.backgroundColor = '#ffeb3b';
+                rightPanel.style.backgroundColor = '#ffeb3b';
+                
+                setTimeout(() => {
+                    leftPanel.style.backgroundColor = rightBg;
+                    rightPanel.style.backgroundColor = leftBg;
+                    
+                    // Remove transitions after the effect
+                    setTimeout(() => {
+                        leftPanel.style.transition = '';
+                        rightPanel.style.transition = '';
+                    }, 300);
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>
