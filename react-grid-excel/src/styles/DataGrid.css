@@ -1,0 +1,122 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+.data-grid {
+    width: 100%;
+}
+
+.actions {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.export-btn {
+    background-color: #2196F3;
+}
+
+.export-btn:hover {
+    background-color: #0b7dda;
+}
+
+.status {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.success {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+.error {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tr:hover {
+    background-color: #e9e9e9;
+}
+
+.checkbox-header {
+    text-align: center;
+}
+
+.checkbox-cell {
+    text-align: center;
+}
+
+input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+.object-cell {
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-width: 300px;
+    overflow: auto;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    gap: 5px;
+}
+
+.pagination button {
+    background-color: #f1f1f1;
+    color: black;
+}
+
+.pagination button.active {
+    background-color: #4CAF50;
+    color: white;
+}
