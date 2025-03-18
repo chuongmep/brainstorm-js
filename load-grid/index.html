@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,36 +10,45 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
+
         table {
             border-collapse: collapse;
             width: 100%;
             margin-top: 20px;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
+
         th {
             background-color: #f2f2f2;
             position: sticky;
             top: 0;
         }
+
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+
         tr:hover {
             background-color: #e9e9e9;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
+
         .actions {
             margin: 20px 0;
             display: flex;
             gap: 10px;
         }
+
         button {
             padding: 8px 16px;
             background-color: #4CAF50;
@@ -47,67 +57,80 @@
             cursor: pointer;
             border-radius: 4px;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         .status {
             margin-top: 10px;
             padding: 10px;
             border-radius: 4px;
         }
+
         .success {
             background-color: #dff0d8;
             color: #3c763d;
         }
+
         .error {
             background-color: #f2dede;
             color: #a94442;
         }
+
         .loading {
             text-align: center;
             padding: 20px;
             font-style: italic;
         }
+
         .editable {
             background-color: #ffffcc;
         }
+
         input[type="checkbox"] {
             transform: scale(1.2);
         }
+
         .checkbox-header {
             text-align: center;
         }
+
         .checkbox-cell {
             text-align: center;
         }
+
         .pagination {
             display: flex;
             justify-content: center;
             margin-top: 20px;
             gap: 5px;
         }
+
         .pagination button {
             background-color: #f1f1f1;
             color: black;
         }
+
         .pagination button.active {
             background-color: #4CAF50;
             color: white;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>DataGrid with Checkboxes</h1>
-        
+
         <div class="actions">
             <button id="refreshBtn">Refresh Data</button>
             <button id="saveBtn">Save Changes</button>
             <button id="deleteSelectedBtn">Delete Selected</button>
         </div>
-        
+
         <div id="status" class="status" style="display: none;"></div>
-        
+
         <div id="dataGrid">
             <div id="loading" class="loading">Loading data...</div>
             <table id="dataTable" style="display: none;">
@@ -121,13 +144,13 @@
                     <!-- Data rows will be added dynamically -->
                 </tbody>
             </table>
-            
+
             <div class="pagination" id="pagination">
                 <!-- Pagination buttons will be added dynamically -->
             </div>
         </div>
     </div>
-    
+
     <script>
         // Configuration
         const config = {
@@ -135,13 +158,13 @@
             pageSize: 10,
             editableColumns: ['title', 'completed'], // Columns that can be edited
         };
-        
+
         // State
         let data = [];
         let originalData = [];
         let currentPage = 1;
         let selectedRows = new Set();
-        
+
         // DOM Elements
         const dataTable = document.getElementById('dataTable');
         const tableBody = document.getElementById('tableBody');
@@ -150,31 +173,31 @@
         const status = document.getElementById('status');
         const pagination = document.getElementById('pagination');
         const selectAllCheckbox = document.getElementById('selectAll');
-        
+
         // Initialize the grid
         document.addEventListener('DOMContentLoaded', () => {
             fetchData();
-            
+
             // Event listeners
             document.getElementById('refreshBtn').addEventListener('click', fetchData);
             document.getElementById('saveBtn').addEventListener('click', saveChanges);
             document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelected);
             selectAllCheckbox.addEventListener('change', toggleSelectAll);
         });
-        
+
         // Fetch data from the remote JSON source
         async function fetchData() {
             showLoading(true);
             showStatus('', '');
-            
+
             try {
                 const response = await fetch(config.dataUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-                
+
                 let jsonData = await response.json();
-                
+
                 // Handle different data structures
                 if (Array.isArray(jsonData)) {
                     data = jsonData;
@@ -188,15 +211,15 @@
                         data = [jsonData];
                     }
                 }
-                
+
                 // Make a deep copy for tracking changes
                 originalData = JSON.parse(JSON.stringify(data));
-                
+
                 // Reset state
                 selectedRows.clear();
                 selectAllCheckbox.checked = false;
                 currentPage = 1;
-                
+
                 // Render the grid
                 renderGrid();
                 showLoading(false);
@@ -206,34 +229,34 @@
                 showLoading(false);
             }
         }
-        
+
         // Render the data grid
         function renderGrid() {
             if (data.length === 0) {
                 showStatus('No data available', 'error');
                 return;
             }
-            
+
             // Render headers
             renderHeaders();
-            
+
             // Render data rows
             renderRows();
-            
+
             // Render pagination
             renderPagination();
-            
+
             // Show the table
             dataTable.style.display = 'table';
         }
-        
+
         // Render table headers based on the first data item
         function renderHeaders() {
             // Clear existing headers except checkbox column
             while (headerRow.children.length > 1) {
                 headerRow.removeChild(headerRow.lastChild);
             }
-            
+
             // Get keys from the first item
             const firstItem = data[0];
             Object.keys(firstItem).forEach(key => {
@@ -242,69 +265,50 @@
                 headerRow.appendChild(th);
             });
         }
-        
+
         // Render table rows for the current page
         function renderRows() {
-            // Clear existing rows
             tableBody.innerHTML = '';
-            
-            // Calculate slice for current page
+
             const start = (currentPage - 1) * config.pageSize;
             const end = start + config.pageSize;
             const pageData = data.slice(start, end);
-            
-            // Create rows
+
             pageData.forEach((item, index) => {
                 const rowIndex = start + index;
                 const row = document.createElement('tr');
                 row.dataset.index = rowIndex;
-                
-                // Add checkbox cell
+                row.addEventListener('click', handleRowClick);
+
+                // Checkbox column
                 const checkboxCell = document.createElement('td');
                 checkboxCell.className = 'checkbox-cell';
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.dataset.index = rowIndex;
                 checkbox.checked = selectedRows.has(rowIndex);
-                checkbox.addEventListener('change', (e) => toggleRowSelection(rowIndex, e.target.checked));
+                checkbox.addEventListener('click', (e) => e.stopPropagation()); // Prevent row click event
+                checkbox.addEventListener('change', (e) => toggleRowSelection(rowIndex, e.target.checked, e));
                 checkboxCell.appendChild(checkbox);
                 row.appendChild(checkboxCell);
-                
-                // Add data cells
+
+                // Data columns
                 Object.entries(item).forEach(([key, value]) => {
                     const cell = document.createElement('td');
-                    
-                    if (config.editableColumns.includes(key)) {
-                        cell.className = 'editable';
-                        cell.contentEditable = true;
-                        cell.addEventListener('blur', (e) => updateCellValue(rowIndex, key, e.target.textContent));
-                    }
-                    
-                    // Handle boolean values specially (as checkboxes)
-                    if (typeof value === 'boolean' && config.editableColumns.includes(key)) {
-                        const checkboxEdit = document.createElement('input');
-                        checkboxEdit.type = 'checkbox';
-                        checkboxEdit.checked = value;
-                        checkboxEdit.addEventListener('change', (e) => updateCellValue(rowIndex, key, e.target.checked));
-                        cell.contentEditable = false;
-                        cell.appendChild(checkboxEdit);
-                    } else {
-                        cell.textContent = value;
-                    }
-                    
+                    cell.textContent = value;
                     row.appendChild(cell);
                 });
-                
+
                 tableBody.appendChild(row);
             });
         }
-        
+
         // Render pagination controls
         function renderPagination() {
             pagination.innerHTML = '';
-            
+
             const totalPages = Math.ceil(data.length / config.pageSize);
-            
+
             // Previous button
             const prevBtn = document.createElement('button');
             prevBtn.textContent = '←';
@@ -317,12 +321,12 @@
                 }
             });
             pagination.appendChild(prevBtn);
-            
+
             // Page buttons
             const maxButtons = 5;
             const startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
             const endPage = Math.min(totalPages, startPage + maxButtons - 1);
-            
+
             for (let i = startPage; i <= endPage; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.textContent = i;
@@ -334,7 +338,7 @@
                 });
                 pagination.appendChild(pageBtn);
             }
-            
+
             // Next button
             const nextBtn = document.createElement('button');
             nextBtn.textContent = '→';
@@ -348,32 +352,61 @@
             });
             pagination.appendChild(nextBtn);
         }
-        
+
         // Update cell value in the data model
         function updateCellValue(rowIndex, key, value) {
             data[rowIndex][key] = value;
         }
-        
-        // Toggle row selection
-        function toggleRowSelection(index, selected) {
-            if (selected) {
-                selectedRows.add(index);
+
+        let lastSelectedIndex = null;
+        // Modify checkbox selection to support Shift + Click and Ctrl + Click
+        function toggleRowSelection(index, selected, event) {
+            if (event.shiftKey && lastSelectedIndex !== null) {
+                // Select range of rows
+                let start = Math.min(lastSelectedIndex, index);
+                let end = Math.max(lastSelectedIndex, index);
+                for (let i = start; i <= end; i++) {
+                    selectedRows.add(i);
+                    document.querySelector(`input[data-index="${i}"]`).checked = true;
+                }
+            } else if (event.ctrlKey || event.metaKey) {
+                // Toggle individual row selection
+                if (selected) {
+                    selectedRows.add(index);
+                } else {
+                    selectedRows.delete(index);
+                }
             } else {
-                selectedRows.delete(index);
+                // Single selection behavior
+                if (selected) {
+                    selectedRows.add(index);
+                } else {
+                    selectedRows.delete(index);
+                }
             }
-            
-            // Update "select all" checkbox state
+
+            lastSelectedIndex = index;
             updateSelectAllCheckbox();
         }
-        
+        function handleRowClick(event) {
+            const row = event.currentTarget;
+            const index = parseInt(row.dataset.index);
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            const isSelected = checkbox.checked;
+
+            checkbox.checked = !isSelected;
+            toggleRowSelection(index, !isSelected, event);
+        }
+
+
         // Toggle select all checkbox
         function toggleSelectAll() {
             const isChecked = selectAllCheckbox.checked;
-            
+
             // Calculate current page indices
             const start = (currentPage - 1) * config.pageSize;
             const end = Math.min(start + config.pageSize, data.length);
-            
+
             // Update checkboxes on current page
             for (let i = start; i < end; i++) {
                 if (isChecked) {
@@ -382,19 +415,19 @@
                     selectedRows.delete(i);
                 }
             }
-            
+
             // Update UI checkboxes
             const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(cb => {
                 cb.checked = isChecked;
             });
         }
-        
+
         // Update the state of "select all" checkbox
         function updateSelectAllCheckbox() {
             const start = (currentPage - 1) * config.pageSize;
             const end = Math.min(start + config.pageSize, data.length);
-            
+
             let allSelected = true;
             for (let i = start; i < end; i++) {
                 if (!selectedRows.has(i)) {
@@ -402,69 +435,70 @@
                     break;
                 }
             }
-            
+
             selectAllCheckbox.checked = allSelected;
         }
-        
+
         // Save changes
         function saveChanges() {
             // In a real app, this would send data to a server
             showStatus('Changes saved successfully!', 'success');
-            
+
             // Update original data to match current data
             originalData = JSON.parse(JSON.stringify(data));
-            
+
             // Simulate network delay
             setTimeout(() => {
                 status.style.display = 'none';
             }, 3000);
         }
-        
+
         // Delete selected rows
         function deleteSelected() {
             if (selectedRows.size === 0) {
                 showStatus('No rows selected', 'error');
                 return;
             }
-            
+
             // Convert Set to Array and sort in descending order
             const indicesToDelete = Array.from(selectedRows).sort((a, b) => b - a);
-            
+
             // Remove items from the end to avoid index shifting issues
             indicesToDelete.forEach(index => {
                 data.splice(index, 1);
             });
-            
+
             // Reset selection and update the UI
             selectedRows.clear();
             selectAllCheckbox.checked = false;
-            
+
             // Adjust current page if needed
             const totalPages = Math.ceil(data.length / config.pageSize);
             if (currentPage > totalPages) {
                 currentPage = totalPages || 1;
             }
-            
+
             renderGrid();
             showStatus(`Deleted ${indicesToDelete.length} row(s)`, 'success');
         }
-        
+
         // Helper functions
         function showLoading(isLoading) {
             loading.style.display = isLoading ? 'block' : 'none';
             dataTable.style.display = isLoading ? 'none' : 'table';
         }
-        
+
         function showStatus(message, type) {
             if (!message) {
                 status.style.display = 'none';
                 return;
             }
-            
+
             status.textContent = message;
             status.className = `status ${type}`;
             status.style.display = 'block';
         }
     </script>
 </body>
+
 </html>
