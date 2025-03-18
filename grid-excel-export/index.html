@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataGrid with Checkboxes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #e9e9e9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .actions {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .editable {
+            background-color: #ffffcc;
+        }
+
+        input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+
+        .checkbox-header {
+            text-align: center;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        .pagination button {
+            background-color: #f1f1f1;
+            color: black;
+        }
+
+        .pagination button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #exportBtn {
+            background-color: #2196F3;
+        }
+        
+        #exportBtn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .object-cell {
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-width: 300px;
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>DataGrid with Checkboxes</h1>
+
+        <div class="actions">
+            <button id="refreshBtn">Refresh Data</button>
+            <button id="saveBtn">Save Changes</button>
+            <button id="deleteSelectedBtn">Delete Selected</button>
+            <button id="exportBtn">Export to Excel</button>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div id="dataGrid">
+            <div id="loading" class="loading">Loading data...</div>
+            <table id="dataTable" style="display: none;">
+                <thead>
+                    <tr id="headerRow">
+                        <th class="checkbox-header"><input type="checkbox" id="selectAll"></th>
+                        <!-- Headers will be added dynamically -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data rows will be added dynamically -->
+                </tbody>
+            </table>
+
+            <div class="pagination" id="pagination">
+                <!-- Pagination buttons will be added dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include SheetJS library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        // Configuration
+        const config = {
+            dataUrl: 'data.json',
+            pageSize: 10,
+            editableColumns: ['title', 'completed'], // Columns that can be edited
+        };
+
+        // State
+        let data = [];
+        let originalData = [];
+        let currentPage = 1;
+        let selectedRows = new Set();
+
+        // DOM Elements
+        const dataTable = document.getElementById('dataTable');
+        const tableBody = document.getElementById('tableBody');
+        const headerRow = document.getElementById('headerRow');
+        const loading = document.getElementById('loading');
+        const status = document.getElementById('status');
+        const pagination = document.getElementById('pagination');
+        const selectAllCheckbox = document.getElementById('selectAll');
+
+        // Initialize the grid
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+
+            // Event listeners
+            document.getElementById('refreshBtn').addEventListener('click', fetchData);
+            document.getElementById('saveBtn').addEventListener('click', saveChanges);
+            document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelected);
+            document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+            selectAllCheckbox.addEventListener('change', toggleSelectAll);
+        });
+
+        // Format value for display
+        function formatValueForDisplay(value) {
+            if (value === null || value === undefined) {
+                return '';
+            } else if (typeof value === 'object' && value !== null) {
+                return JSON.stringify(value, null, 2);
+            } else {
+                return String(value);
+            }
+        }
+
+        // Fetch data from the remote JSON source
+        async function fetchData() {
+            showLoading(true);
+            showStatus('', '');
+
+            try {
+                const response = await fetch(config.dataUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                let jsonData = await response.json();
+
+                // Debugging - log the structure of the fetched data
+                console.log('Fetched data type:', typeof jsonData);
+                if (typeof jsonData === 'object') {
+                    console.log('Is array?', Array.isArray(jsonData));
+                    if (!Array.isArray(jsonData)) {
+                        console.log('Object keys:', Object.keys(jsonData));
+                    }
+                }
+
+                // Handle different data structures
+                if (Array.isArray(jsonData)) {
+                    data = jsonData;
+                } else if (typeof jsonData === 'object') {
+                    // If it's an object with an array property, try to find the array
+                    const arrayProps = Object.keys(jsonData).filter(key => Array.isArray(jsonData[key]));
+                    if (arrayProps.length > 0) {
+                        data = jsonData[arrayProps[0]];
+                    } else {
+                        // Convert object to array if needed
+                        data = [jsonData];
+                    }
+                }
+
+                // Make a deep copy for tracking changes
+                originalData = JSON.parse(JSON.stringify(data));
+
+                // Reset state
+                selectedRows.clear();
+                selectAllCheckbox.checked = false;
+                currentPage = 1;
+
+                // Render the grid
+                renderGrid();
+                showLoading(false);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showStatus(`Error loading data: ${error.message}`, 'error');
+                showLoading(false);
+            }
+        }
+
+        // Render the data grid
+        function renderGrid() {
+            if (data.length === 0) {
+                showStatus('No data available', 'error');
+                return;
+            }
+
+            // Render headers
+            renderHeaders();
+
+            // Render data rows
+            renderRows();
+
+            // Render pagination
+            renderPagination();
+
+            // Show the table
+            dataTable.style.display = 'table';
+        }
+
+        // Render table headers based on the first data item
+        function renderHeaders() {
+            // Clear existing headers except checkbox column
+            while (headerRow.children.length > 1) {
+                headerRow.removeChild(headerRow.lastChild);
+            }
+
+            // Get keys from the first item
+            const firstItem = data[0];
+            Object.keys(firstItem).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize
+                headerRow.appendChild(th);
+            });
+        }
+
+        // Render table rows for the current page
+        function renderRows() {
+            tableBody.innerHTML = '';
+
+            const start = (currentPage - 1) * config.pageSize;
+            const end = start + config.pageSize;
+            const pageData = data.slice(start, end);
+
+            pageData.forEach((item, index) => {
+                const rowIndex = start + index;
+                const row = document.createElement('tr');
+                row.dataset.index = rowIndex;
+                row.addEventListener('click', handleRowClick);
+
+                // Checkbox column
+                const checkboxCell = document.createElement('td');
+                checkboxCell.className = 'checkbox-cell';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.index = rowIndex;
+                checkbox.checked = selectedRows.has(rowIndex);
+                checkbox.addEventListener('click', (e) => e.stopPropagation()); // Prevent row click event
+                checkbox.addEventListener('change', (e) => toggleRowSelection(rowIndex, e.target.checked, e));
+                checkboxCell.appendChild(checkbox);
+                row.appendChild(checkboxCell);
+
+                // Data columns
+                Object.entries(item).forEach(([key, value]) => {
+                    const cell = document.createElement('td');
+                    const formattedValue = formatValueForDisplay(value);
+                    
+                    // Apply special styling for object values
+                    if (typeof value === 'object' && value !== null) {
+                        cell.className = 'object-cell';
+                    }
+                    
+                    cell.textContent = formattedValue;
+                    row.appendChild(cell);
+                });
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Render pagination controls
+        function renderPagination() {
+            pagination.innerHTML = '';
+
+            const totalPages = Math.ceil(data.length / config.pageSize);
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '←';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderRows();
+                    renderPagination();
+                }
+            });
+            pagination.appendChild(prevBtn);
+
+            // Page buttons
+            const maxButtons = 5;
+            const startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            const endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.className = i === currentPage ? 'active' : '';
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderRows();
+                    renderPagination();
+                });
+                pagination.appendChild(pageBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '→';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderRows();
+                    renderPagination();
+                }
+            });
+            pagination.appendChild(nextBtn);
+        }
+
+        // Update cell value in the data model
+        function updateCellValue(rowIndex, key, value) {
+            data[rowIndex][key] = value;
+        }
+
+        let lastSelectedIndex = null;
+        // Modify checkbox selection to support Shift + Click and Ctrl + Click
+        function toggleRowSelection(index, selected, event) {
+            if (event.shiftKey && lastSelectedIndex !== null) {
+                // Select range of rows
+                let start = Math.min(lastSelectedIndex, index);
+                let end = Math.max(lastSelectedIndex, index);
+                for (let i = start; i <= end; i++) {
+                    selectedRows.add(i);
+                    document.querySelector(`input[data-index="${i}"]`).checked = true;
+                }
+            } else if (event.ctrlKey || event.metaKey) {
+                // Toggle individual row selection
+                if (selected) {
+                    selectedRows.add(index);
+                } else {
+                    selectedRows.delete(index);
+                }
+            } else {
+                // Single selection behavior
+                if (selected) {
+                    selectedRows.add(index);
+                } else {
+                    selectedRows.delete(index);
+                }
+            }
+
+            lastSelectedIndex = index;
+            updateSelectAllCheckbox();
+        }
+        function handleRowClick(event) {
+            const row = event.currentTarget;
+            const index = parseInt(row.dataset.index);
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            const isSelected = checkbox.checked;
+
+            checkbox.checked = !isSelected;
+            toggleRowSelection(index, !isSelected, event);
+        }
+
+
+        // Toggle select all checkbox
+        function toggleSelectAll() {
+            const isChecked = selectAllCheckbox.checked;
+
+            // Calculate current page indices
+            const start = (currentPage - 1) * config.pageSize;
+            const end = Math.min(start + config.pageSize, data.length);
+
+            // Update checkboxes on current page
+            for (let i = start; i < end; i++) {
+                if (isChecked) {
+                    selectedRows.add(i);
+                } else {
+                    selectedRows.delete(i);
+                }
+            }
+
+            // Update UI checkboxes
+            const checkboxes = tableBody.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+        }
+
+        // Update the state of "select all" checkbox
+        function updateSelectAllCheckbox() {
+            const start = (currentPage - 1) * config.pageSize;
+            const end = Math.min(start + config.pageSize, data.length);
+
+            let allSelected = true;
+            for (let i = start; i < end; i++) {
+                if (!selectedRows.has(i)) {
+                    allSelected = false;
+                    break;
+                }
+            }
+
+            selectAllCheckbox.checked = allSelected;
+        }
+
+        // Save changes
+        function saveChanges() {
+            // In a real app, this would send data to a server
+            showStatus('Changes saved successfully!', 'success');
+
+            // Update original data to match current data
+            originalData = JSON.parse(JSON.stringify(data));
+
+            // Simulate network delay
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Delete selected rows
+        function deleteSelected() {
+            if (selectedRows.size === 0) {
+                showStatus('No rows selected', 'error');
+                return;
+            }
+
+            // Convert Set to Array and sort in descending order
+            const indicesToDelete = Array.from(selectedRows).sort((a, b) => b - a);
+
+            // Remove items from the end to avoid index shifting issues
+            indicesToDelete.forEach(index => {
+                data.splice(index, 1);
+            });
+
+            // Reset selection and update the UI
+            selectedRows.clear();
+            selectAllCheckbox.checked = false;
+
+            // Adjust current page if needed
+            const totalPages = Math.ceil(data.length / config.pageSize);
+            if (currentPage > totalPages) {
+                currentPage = totalPages || 1;
+            }
+
+            renderGrid();
+            showStatus(`Deleted ${indicesToDelete.length} row(s)`, 'success');
+        }
+
+        // Export to Excel function
+        function exportToExcel() {
+            try {
+                // Determine which data to export: all data or only selected rows
+                let dataToExport = [];
+                
+                if (selectedRows.size > 0) {
+                    // Export only selected rows
+                    Array.from(selectedRows).sort((a, b) => a - b).forEach(index => {
+                        dataToExport.push(data[index]);
+                    });
+                } else {
+                    // Export all data
+                    dataToExport = data;
+                }
+                
+                if (dataToExport.length === 0) {
+                    showStatus('No data to export', 'error');
+                    return;
+                }
+                
+                // Create a new workbook
+                const workbook = XLSX.utils.book_new();
+                
+                // Convert data to worksheet
+                const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+                
+                // Generate Excel file
+                const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                
+                // Save file
+                saveExcelFile(excelBuffer, 'datagrid_export.xlsx');
+                
+                showStatus(`Exported ${dataToExport.length} row(s) to Excel`, 'success');
+                
+                // Hide status after 3 seconds
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                showStatus(`Error exporting to Excel: ${error.message}`, 'error');
+            }
+        }
+        
+        // Helper function to save Excel file
+        function saveExcelFile(buffer, fileName) {
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            // Create download link
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = fileName;
+            
+            // Append to document, click, and remove
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        // Helper functions
+        function showLoading(isLoading) {
+            loading.style.display = isLoading ? 'block' : 'none';
+            dataTable.style.display = isLoading ? 'none' : 'table';
+        }
+
+        function showStatus(message, type) {
+            if (!message) {
+                status.style.display = 'none';
+                return;
+            }
+
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
