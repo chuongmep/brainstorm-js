@@ -1,5 +1,6 @@
 import { initViewer, loadModel } from './viewer.js';
 import { initTree } from './sidebar.js';
+import { initSplitView } from './split-view.js';
 
 const login = document.getElementById('login');
 try {
@@ -20,6 +21,30 @@ try {
         }
         const viewer = await initViewer(document.getElementById('preview'));
         initTree('#tree', (id) => loadModel(viewer, window.btoa(id).replace(/=/g, '')));
+        
+        // Initialize the split view with default options
+        const splitView = initSplitView({
+            initialSplitPercentage: 25,
+            minSidebarWidth: 15,
+            maxSidebarWidth: 50
+        });
+        
+        // Ensure viewer resizes when split changes
+        const resizeViewer = _.debounce(() => {
+            if (viewer) {
+                viewer.resize();
+            }
+        }, 250);
+        
+        // Create a mutation observer to watch for style changes on the sidebar
+        const observer = new MutationObserver(resizeViewer);
+        observer.observe(document.getElementById('sidebar'), { 
+            attributes: true, 
+            attributeFilter: ['style'] 
+        });
+        
+        // Also resize on window resize
+        window.addEventListener('resize', resizeViewer);
     } else {
         login.innerText = 'Login';
         login.onclick = () => window.location.replace('/api/auth/login');
