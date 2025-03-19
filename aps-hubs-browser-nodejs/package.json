@@ -1,0 +1,22 @@
+{
+  "name": "aps-hubs-browser-nodejs",
+  "version": "1.0.0",
+  "description": "Autodesk Platform Services application built by following the Hubs Browser tutorial from https://aps.autodesk.com/tutorials.",
+  "scripts": {
+    "start": "bun server.js",
+    "dev": "bun --watch server.js"
+  },
+  "keywords": [
+    "autodesk-platform-services"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@aps_sdk/authentication": "^1.0.0",
+    "@aps_sdk/data-management": "^1.0.1",
+    "cookie-session": "^1.4.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "install": "^0.13.0"
+  }
+}
