@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=no" />
+    <meta charset="utf-8">
+    <title>Autodesk Viewer</title>
+    <!-- The Viewer CSS -->
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css" type="text/css">
+    <!-- Developer CSS -->
+    <style ref="stylesheet" href="style.css"></style>
+</head>
+<body>
+    <!-- The Viewer will be instantiated here -->
+    <div id="viewer"></div>
+    <!-- The Viewer JS -->
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/6.*/viewer3D.min.js"></script>
+    <!-- Developer JS -->
+    <script type="module">
+        import {initializeViewer} from './utils.js';
+        initializeViewer();
+    </script>
+</body>
+</html>
