@@ -29,14 +29,16 @@
     <!-- Developer JS -->
     <script type="module">
         var tokenUrl = "https://aps-codepen.autodesk.io/api/token";
-    
+        // this just for demo cors
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/'
         async function getAccessToken() {
             try {
-                const response = await fetch(tokenUrl, {
+                const response = await fetch(proxyUrl+tokenUrl, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    credentials: 'same-origin',
                 });
     
                 if (!response.ok) {
