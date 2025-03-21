@@ -55,11 +55,10 @@ function onDocumentLoadSuccess(doc) {
     var config = {
         extensions: initGeom.extensions() || []
     };
-    var viewer = new Autodesk.Viewing.Private.GuiViewer3D(viewerDiv, config);
-
+    var viewer = new Autodesk.Viewing.GuiViewer3D(viewerDiv, config);
     var svfUrl = doc.getViewablePath(initGeom);
     var modelOptions = {
-        sharedPropertyDbPath: doc.getPropertyDbPath()
+        sharedPropertyDbPath: doc.findPropertyDbPath
     };
     viewer.start(svfUrl, modelOptions, onLoadModelSuccess, onLoadModelError);
 }
